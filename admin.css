@@ -1,0 +1,181 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background: #f1f6ff;
+    color: #172b4d;
+    padding-bottom: 30px;
+}
+
+/* Header */
+.admin-header {
+    background: #0755b5;
+    color: white;
+    padding: 18px 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.admin-header a {
+    color: white;
+    text-decoration: none;
+}
+
+/* Login */
+.login-box {
+    background: white;
+    width: 90%;
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 3px 15px #d5e2f5;
+}
+
+.login-box h2 {
+    text-align: center;
+    color: #0755b5;
+    margin-bottom: 20px;
+}
+
+/* Inputs */
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #c5d5eb;
+    border-radius: 7px;
+    font-size: 15px;
+}
+
+textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Buttons */
+button {
+    background: #0755b5;
+    color: white;
+    border: none;
+    padding: 11px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    margin: 5px 3px;
+}
+
+button:hover {
+    background: #063e86;
+}
+
+#logoutButton {
+    background: #d93030;
+    margin: 15px 5%;
+}
+
+/* Dashboard */
+#dashboardSection {
+    padding: 25px 5%;
+}
+
+#dashboardSection > h1 {
+    color: #0755b5;
+    margin-bottom: 15px;
+}
+
+/* Dashboard Cards */
+.admin-card {
+    background: white;
+    padding: 25px;
+    margin: 20px 0;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px #dce6f5;
+}
+
+.admin-card h2 {
+    color: #0755b5;
+    margin-bottom: 20px;
+}
+
+/* Form */
+#foodForm {
+    max-width: 650px;
+}
+
+#foodForm button {
+    margin-top: 12px;
+}
+
+/* Food and Order Lists */
+#adminFoodList,
+#adminOrderList {
+    overflow-x: auto;
+}
+
+.admin-item,
+.admin-order {
+    background: #f5f8ff;
+    border: 1px solid #dce6f5;
+    padding: 15px;
+    margin: 12px 0;
+    border-radius: 8px;
+}
+
+.admin-item h3,
+.admin-order h3 {
+    color: #0755b5;
+    margin-bottom: 8px;
+}
+
+.admin-item p,
+.admin-order p {
+    margin: 6px 0;
+}
+
+/* Action Buttons */
+.edit-button {
+    background: #087bca;
+}
+
+.delete-button {
+    background: #d93030;
+}
+
+.status-button {
+    background: #16834a;
+}
+
+#loginMessage {
+    margin-top: 15px;
+    text-align: center;
+    color: #d93030;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .admin-header {
+        padding: 15px;
+    }
+
+    #dashboardSection {
+        padding: 15px;
+    }
+
+    .admin-card {
+        padding: 15px;
+    }
+
+    .login-box {
+        margin: 35px auto;
+        padding: 20px;
+    }
+}

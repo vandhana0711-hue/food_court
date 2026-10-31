@@ -1,0 +1,436 @@
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+require("dotenv").config();
+
+const app = express();
+const PORT = 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+// Database file
+const DB_FILE = path.join(__dirname, "data", "db.json");
+
+// Read database without replacing existing data
+function readDB() {
+    const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+
+    if (Array.isArray(data)) {
+        return { menu: data, orders: [], reviews: [] };
+    }
+
+    data.menu = Array.isArray(data.menu) ? data.menu : [];
+    data.orders = Array.isArray(data.orders) ? data.orders : [];
+    data.reviews = Array.isArray(data.reviews) ? data.reviews : [];
+
+    return data;
+}
+
+// Save database
+function saveDB(data) {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+}
+
+// Admin login tokens (stored in server memory)
+const adminTokens = new Set();
+
+// Check Admin Login
+function checkAdmin(req, res, next) {
+    const authorization = req.headers.authorization || "";
+    const token = authorization.startsWith("Bearer ")
+        ? authorization.slice(7)
+        : "";
+
+    if (!token || !adminTokens.has(token)) {
+        return res.status(401).json({
+            message: "Please login as admin."
+        });
+    }
+
+    next();
+}
+
+// Customer website
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Admin website
+app.get("/admin", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+// Get menu for customers
+app.get("/api/menu", (req, res) => {
+    try {
+        const db = readDB();
+        res.json(db.menu);
+    } catch (error) {
+        res.status(500).json({ message: "Could not load menu." });
+    }
+});
+
+// Admin Login
+app.post("/api/admin/login", (req, res) => {
+    const { username, password } = req.body;
+
+    if (
+        !process.env.ADMIN_USERNAME ||
+        !process.env.ADMIN_PASSWORD
+    ) {
+        return res.status(500).json({
+            message: "Admin login is not configured. Check .env file."
+        });
+    }
+
+    if (
+        username !== process.env.ADMIN_USERNAME ||
+        password !== process.env.ADMIN_PASSWORD
+    ) {
+        return res.status(401).json({
+            message: "Incorrect username or password."
+        });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    adminTokens.add(token);
+
+    res.json({
+        message: "Login successful.",
+        token
+    });
+});
+
+// Admin: Get all food items
+app.get("/api/admin/menu", checkAdmin, (req, res) => {
+    try {
+        const db = readDB();
+        res.json(db.menu);
+    } catch (error) {
+        res.status(500).json({ message: "Could not load food items." });
+    }
+});
+
+// Admin: Add new food item
+app.post("/api/admin/menu", checkAdmin, (req, res) => {
+    try {
+        const db = readDB();
+
+        const {
+            name, category, foodType, description,
+            price, prepTime, image
+        } = req.body;
+
+        if (
+            !name || !category ||
+            !["Veg", "Non-Veg"].includes(foodType) ||
+            !Number.isFinite(Number(price)) || Number(price) <= 0 ||
+            !Number.isFinite(Number(prepTime)) || Number(prepTime) <= 0
+        ) {
+            return res.status(400).json({
+                message: "Please enter valid food details."
+            });
+        }
+
+        const newFood = {
+            id: Date.now().toString(),
+            name,
+            category,
+            foodType,
+            description: description || "",
+            price: Number(price),
+            prepTime: Number(prepTime),
+            rating: 0,
+            ratingCount: 0,
+            image: image || "",
+            available: true
+        };
+
+        db.menu.push(newFood);
+        saveDB(db);
+
+        res.status(201).json({
+            message: "Food item added successfully.",
+            food: newFood
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Could not add food item." });
+    }
+});
+
+// Admin: Edit food item
+app.put("/api/admin/menu/:id", checkAdmin, (req, res) => {
+    try {
+        const db = readDB();
+
+        const food = db.menu.find(
+            item => String(item.id) === String(req.params.id)
+        );
+
+        if (!food) {
+            return res.status(404).json({
+                message: "Food item not found."
+            });
+        }
+
+        const {
+            name, category, foodType, description,
+            price, prepTime, image, available
+        } = req.body;
+
+        if (name !== undefined) food.name = name;
+        if (category !== undefined) food.category = category;
+
+        if (foodType !== undefined) {
+            if (!["Veg", "Non-Veg"].includes(foodType)) {
+                return res.status(400).json({
+                    message: "Invalid food type."
+                });
+            }
+            food.foodType = foodType;
+        }
+
+        if (description !== undefined) food.description = description;
+
+        if (price !== undefined) {
+            if (!Number.isFinite(Number(price)) || Number(price) <= 0) {
+                return res.status(400).json({
+                    message: "Invalid food price."
+                });
+            }
+            food.price = Number(price);
+        }
+
+        if (prepTime !== undefined) {
+            if (!Number.isFinite(Number(prepTime)) || Number(prepTime) <= 0) {
+                return res.status(400).json({
+                    message: "Invalid preparation time."
+                });
+            }
+            food.prepTime = Number(prepTime);
+        }
+
+        if (image !== undefined) food.image = image;
+        if (typeof available === "boolean") food.available = available;
+
+        saveDB(db);
+
+        res.json({
+            message: "Food item updated successfully.",
+            food
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Could not update food item." });
+    }
+});
+
+// Admin: Delete food item
+app.delete("/api/admin/menu/:id", checkAdmin, (req, res) => {
+    try {
+        const db = readDB();
+
+        const oldLength = db.menu.length;
+
+        db.menu = db.menu.filter(
+            item => String(item.id) !== String(req.params.id)
+        );
+
+        if (db.menu.length === oldLength) {
+            return res.status(404).json({
+                message: "Food item not found."
+            });
+        }
+
+        saveDB(db);
+
+        res.json({ message: "Food item deleted successfully." });
+
+    } catch (error) {
+        res.status(500).json({ message: "Could not delete food item." });
+    }
+});
+
+// Customer: Place order
+app.post("/api/orders", (req, res) => {
+    try {
+        const db = readDB();
+
+        const { name, phone, table, paymentMethod, items } = req.body;
+
+        if (
+            !name || !phone || !table ||
+            !["UPI", "Cash"].includes(paymentMethod) ||
+            !Array.isArray(items) || items.length === 0
+        ) {
+            return res.status(400).json({
+                message: "Please provide all order details."
+            });
+        }
+
+        if (!/^[0-9]{10}$/.test(String(phone))) {
+            return res.status(400).json({
+                message: "Enter a valid 10-digit phone number."
+            });
+        }
+
+        const orderItems = [];
+        let total = 0;
+        let maxPrepTime = 0;
+
+        for (const requestedItem of items) {
+            const food = db.menu.find(
+                item => String(item.id) === String(requestedItem.id)
+            );
+
+            const quantity = Number(requestedItem.quantity);
+
+            if (
+                !food || food.available === false ||
+                !Number.isInteger(quantity) || quantity < 1 || quantity > 50
+            ) {
+                return res.status(400).json({
+                    message: "An item is unavailable or has invalid quantity."
+                });
+            }
+
+            orderItems.push({
+                id: food.id,
+                name: food.name,
+                price: Number(food.price),
+                quantity
+            });
+
+            total += Number(food.price) * quantity;
+            maxPrepTime = Math.max(
+                maxPrepTime,
+                Number(food.prepTime) || 0
+            );
+        }
+
+        const orderId = "FC" + Date.now();
+
+        const order = {
+            id: orderId,
+            orderId,
+            name,
+            phone,
+            table: String(table),
+            items: orderItems,
+            total,
+            prepTime: maxPrepTime,
+            paymentMethod,
+            paymentStatus: paymentMethod === "UPI"
+                ? "Awaiting Verification"
+                : "Pay at Table",
+            status: "Pending",
+            createdAt: new Date().toISOString()
+        };
+
+        db.orders.push(order);
+        saveDB(db);
+
+        res.status(201).json({
+            message: "Order placed successfully.",
+            orderId,
+            total,
+            prepTime: maxPrepTime,
+            status: order.status,
+            paymentStatus: order.paymentStatus
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Could not place order." });
+    }
+});
+
+// Customer: Track order
+app.get("/api/orders/:orderId", (req, res) => {
+    try {
+        const db = readDB();
+
+        const order = db.orders.find(
+            item => String(item.id || item.orderId) ===
+                String(req.params.orderId)
+        );
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Order not found."
+            });
+        }
+
+        res.json({
+            orderId: order.orderId || order.id,
+            status: order.status,
+            paymentStatus: order.paymentStatus,
+            prepTime: order.prepTime
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Could not track order." });
+    }
+});
+
+// Admin: View customer orders
+app.get("/api/admin/orders", checkAdmin, (req, res) => {
+    try {
+        const db = readDB();
+        res.json(db.orders);
+    } catch (error) {
+        res.status(500).json({ message: "Could not load orders." });
+    }
+});
+
+// Admin: Update order status
+app.patch("/api/admin/orders/:id", checkAdmin, (req, res) => {
+    try {
+        const db = readDB();
+
+        const order = db.orders.find(
+            item => String(item.id || item.orderId) ===
+                String(req.params.id)
+        );
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Order not found."
+            });
+        }
+
+        const allowedStatuses = [
+            "Pending",
+            "Preparing",
+            "Ready to Serve",
+            "Completed"
+        ];
+
+        if (!allowedStatuses.includes(req.body.status)) {
+            return res.status(400).json({
+                message: "Invalid order status."
+            });
+        }
+
+        order.status = req.body.status;
+        saveDB(db);
+
+        res.json({
+            message: "Order status updated.",
+            order
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Could not update order." });
+    }
+});
+
+// Start server
+app.listen(PORT, () => {
+    console.log("Food Court server is running!");
+    console.log("Open http://localhost:" + PORT);
+});
