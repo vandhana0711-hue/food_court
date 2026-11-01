@@ -15,9 +15,28 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Database file
 const DB_FILE = path.join(__dirname, "data", "db.json");
+const MENU_FILE = path.join(__dirname, "data", "menu.json");
 
 // Read database without replacing existing data
 function readDB() {
+    let data;
+
+    if (fs.existsSync(DB_FILE)) {
+        data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+    } else {
+        data = JSON.parse(fs.readFileSync(MENU_FILE, "utf8"));
+    }
+
+    if (Array.isArray(data)) {
+        return { menu: data, orders: [], reviews: [] };
+    }
+
+    data.menu = Array.isArray(data.menu) ? data.menu : [];
+    data.orders = Array.isArray(data.orders) ? data.orders : [];
+    data.reviews = Array.isArray(data.reviews) ? data.reviews : [];
+
+    return data;
+}
     const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
 
     if (Array.isArray(data)) {
