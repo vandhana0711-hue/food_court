@@ -391,3 +391,29 @@ async function loadAdminOrders() {
 if (adminToken) {
     showDashboard();
 }
+
+// Create Kitchen Team Account
+const kitchenUserForm = document.getElementById("kitchenUserForm");
+
+if (kitchenUserForm) {
+    kitchenUserForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const username = document.getElementById("newKitchenUsername").value.trim();
+        const password = document.getElementById("newKitchenPassword").value;
+        const message = document.getElementById("kitchenUserMessage");
+
+        try {
+            const result = await adminRequest("/kitchen-users", {
+                method: "POST",
+                body: JSON.stringify({ username, password })
+            });
+
+            message.textContent = result.message;
+            kitchenUserForm.reset();
+
+        } catch (error) {
+            message.textContent = error.message;
+        }
+    });
+}
