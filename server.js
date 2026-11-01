@@ -32,13 +32,19 @@ function readDB() {
         return {
             menu: data,
             orders: [],
-            reviews: []
+            reviews: [],
+            kitchenUsers: []
         };
     }
 
     data.menu = Array.isArray(data.menu) ? data.menu : [];
     data.orders = Array.isArray(data.orders) ? data.orders : [];
     data.reviews = Array.isArray(data.reviews) ? data.reviews : [];
+    data.kitchenUsers = Array.isArray(data.kitchenUsers)
+    ? data.kitchenUsers
+    : [];
+
+return data;
 
     return data;
 }
@@ -53,6 +59,7 @@ function saveDB(data) {
 
 // Admin login tokens
 const adminTokens = new Set();
+const kitchenTokens = new Set();
 
 // Check admin login
 function checkAdmin(req, res, next) {
@@ -65,6 +72,22 @@ function checkAdmin(req, res, next) {
     if (!token || !adminTokens.has(token)) {
         return res.status(401).json({
             message: "Please login as admin."
+        });
+    }
+
+    next();
+}
+// Check Kitchen Team login
+function checkKitchen(req, res, next) {
+    const authorization = req.headers.authorization || "";
+
+    const token = authorization.startsWith("Bearer ")
+        ? authorization.slice(7)
+        : "";
+
+    if (!token || !kitchenTokens.has(token)) {
+        return res.status(401).json({
+            message: "Please login as Kitchen Team."
         });
     }
 
@@ -124,7 +147,112 @@ app.post("/api/admin/login", (req, res) => {
         token
     });
 });
+// Admin: Create Kitchen Team account
+app.post("/api/admin/kitchen-users", checkAdmin, (req, res) => {
+    try {
+        const { username, password } = req.body;
 
+        if (
+            typeof username !== "string" ||
+            typeof password !== "string" ||
+            username.trim().length < 3 ||
+            password.length < 8
+        ) {
+            return res.status(400).json({
+                message: "Username needs 3 characters and password needs 8 characters."
+            });
+        }
+
+        const db = readDB();
+        const cleanUsername = username.trim();
+
+        const exists = db.kitchenUsers.some(
+            user => user.username.toLowerCase() === cleanUsername.toLowerCase()
+        );
+
+        if (exists) {
+            return res.status(409).json({
+                message: "Kitchen username already exists."
+            });
+        }
+
+        const salt = crypto.randomBytes(16).toString("hex");
+
+        const passwordHash = crypto.scryptSync(
+            password,
+            salt,
+            64
+        ).toString("hex");
+
+        db.kitchenUsers.push({
+            id: crypto.randomUUID(),
+            username: cleanUsername,
+            salt,
+            passwordHash
+        });
+
+        saveDB(db);
+
+        res.status(201).json({
+            message: "Kitchen Team account created successfully."
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Could not create Kitchen Team account."
+        });
+    }
+});
+// Kitchen Team login
+app.post("/api/kitchen/login", (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const db = readDB();
+
+        const user = db.kitchenUsers.find(
+            item => item.username.toLowerCase() ===
+                String(username || "").trim().toLowerCase()
+        );
+
+        if (!user || typeof password !== "string") {
+            return res.status(401).json({
+                message: "Incorrect Kitchen Team username or password."
+            });
+        }
+
+        const suppliedHash = crypto.scryptSync(
+            password,
+            user.salt,
+            64
+        );
+
+        const savedHash = Buffer.from(user.passwordHash, "hex");
+
+        if (
+            suppliedHash.length !== savedHash.length ||
+            !crypto.timingSafeEqual(suppliedHash, savedHash)
+        ) {
+            return res.status(401).json({
+                message: "Incorrect Kitchen Team username or password."
+            });
+        }
+
+        const token = crypto.randomBytes(32).toString("hex");
+        kitchenTokens.add(token);
+
+        res.json({
+            message: "Kitchen Team login successful.",
+            token
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Kitchen Team login failed."
+        });
+    }
+});
 // Admin: Get food items
 app.get("/api/admin/menu", checkAdmin, (req, res) => {
     try {
@@ -523,7 +651,62 @@ app.patch("/api/admin/orders/:id", checkAdmin, (req, res) => {
         });
     }
 });
+// Kitchen Team: View all orders
+app.get("/api/kitchen/orders", checkKitchen, (req, res) => {
+    try {
+        const db = readDB();
+        res.json(db.orders);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Could not load kitchen orders."
+        });
+    }
+});
 
+// Kitchen Team: Update order status
+app.patch("/api/kitchen/orders/:id", checkKitchen, (req, res) => {
+    try {
+        const db = readDB();
+
+        const order = db.orders.find(
+            item =>
+                String(item.id || item.orderId) ===
+                String(req.params.id)
+        );
+
+        if (!order) {
+            return res.status(404).json({
+                message: "Order not found."
+            });
+        }
+
+        const allowedStatuses = [
+            "Pending",
+            "Preparing",
+            "Ready to Serve"
+        ];
+
+        if (!allowedStatuses.includes(req.body.status)) {
+            return res.status(400).json({
+                message: "Invalid order status."
+            });
+        }
+
+        order.status = req.body.status;
+        saveDB(db);
+
+        res.json({
+            message: "Kitchen order status updated.",
+            order
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Could not update kitchen order."
+        });
+    }
+});
 // Start server
 app.listen(PORT, () => {
     console.log("Food Court server is running!");
