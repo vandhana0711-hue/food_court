@@ -7,6 +7,8 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+console.log("Admin username configured:", !!process.env.ADMIN_USERNAME);
+console.log("Admin password configured:", !!process.env.ADMIN_PASSWORD);
 
 app.use(cors());
 app.use(express.json());
@@ -390,7 +392,9 @@ app.post("/api/orders", (req, res) => {
                 Number(food.prepTime) || 0
             );
         }
-
+        const upiPaymentLink = paymentMethod === "UPI"
+    ? `upi://pay?pa=${encodeURIComponent(process.env.UPI_ID)}&pn=Food%20Court&am=${total.toFixed(2)}&cu=INR&tn=Order%20${orderId}`
+    : null;
         const orderId = "FC" + Date.now();
 
         const order = {
@@ -403,6 +407,7 @@ app.post("/api/orders", (req, res) => {
             total,
             prepTime: maxPrepTime,
             paymentMethod,
+            paymentLink: upiPaymentLink,
             paymentStatus: paymentMethod === "UPI"
                 ? "Awaiting Verification"
                 : "Pay at Table",
@@ -414,13 +419,14 @@ app.post("/api/orders", (req, res) => {
         saveDB(db);
 
         res.status(201).json({
-            message: "Order placed successfully.",
-            orderId,
-            total,
-            prepTime: maxPrepTime,
-            status: order.status,
-            paymentStatus: order.paymentStatus
-        });
+    message: "Order placed successfully.",
+    orderId,
+    total,
+    prepTime: maxPrepTime,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    paymentLink: order.paymentLink
+});
     } catch (error) {
         console.error(error);
         res.status(500).json({
