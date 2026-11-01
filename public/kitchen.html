@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Court - Kitchen Team</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+    <header class="admin-header">
+        <h2>Food Court - Kitchen Team</h2>
+        <a href="/">Customer Website</a>
+    </header>
+
+    <section id="kitchenLoginSection" class="login-box">
+        <h2>Kitchen Team Login</h2>
+
+        <input
+            type="text"
+            id="kitchenUsername"
+            placeholder="Enter Kitchen username"
+        >
+
+        <input
+            type="password"
+            id="kitchenPassword"
+            placeholder="Enter Kitchen password"
+        >
+
+        <button id="kitchenLoginButton">Login</button>
+        <p id="kitchenLoginMessage"></p>
+    </section>
+
+    <main id="kitchenDashboard" style="display:none;">
+        <h1>Kitchen Dashboard</h1>
+        <button id="kitchenLogoutButton">Logout</button>
+
+        <section class="admin-card">
+            <h2>Incoming Customer Orders</h2>
+            <div id="kitchenOrderList">Loading orders...</div>
+        </section>
+    </main>
+
+    <script src="js/kitchen.js"></script>
+
+</body>
+</html>
