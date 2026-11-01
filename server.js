@@ -45,8 +45,6 @@ function readDB() {
     : [];
 
 return data;
-
-    return data;
 }
 
 // Save database
