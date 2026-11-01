@@ -6,18 +6,17 @@ const crypto = require("crypto");
 require("dotenv").config();
 
 const app = express();
-app.use(express.static(path.join(__dirname, "public")));
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Database file
+// Database files
 const DB_FILE = path.join(__dirname, "data", "db.json");
 const MENU_FILE = path.join(__dirname, "data", "menu.json");
 
-// Read database without replacing existing data
+// Read database
 function readDB() {
     let data;
 
@@ -28,19 +27,11 @@ function readDB() {
     }
 
     if (Array.isArray(data)) {
-        return { menu: data, orders: [], reviews: [] };
-    }
-
-    data.menu = Array.isArray(data.menu) ? data.menu : [];
-    data.orders = Array.isArray(data.orders) ? data.orders : [];
-    data.reviews = Array.isArray(data.reviews) ? data.reviews : [];
-
-    return data;
-}
-    const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-
-    if (Array.isArray(data)) {
-        return { menu: data, orders: [], reviews: [] };
+        return {
+            menu: data,
+            orders: [],
+            reviews: []
+        };
     }
 
     data.menu = Array.isArray(data.menu) ? data.menu : [];
@@ -52,15 +43,19 @@ function readDB() {
 
 // Save database
 function saveDB(data) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+    fs.writeFileSync(
+        DB_FILE,
+        JSON.stringify(data, null, 2)
+    );
 }
 
-// Admin login tokens (stored in server memory)
+// Admin login tokens
 const adminTokens = new Set();
 
-// Check Admin Login
+// Check admin login
 function checkAdmin(req, res, next) {
     const authorization = req.headers.authorization || "";
+
     const token = authorization.startsWith("Bearer ")
         ? authorization.slice(7)
         : "";
@@ -84,17 +79,20 @@ app.get("/admin", (req, res) => {
     res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// Get menu for customers
+// Get customer menu
 app.get("/api/menu", (req, res) => {
     try {
         const db = readDB();
         res.json(db.menu);
     } catch (error) {
-        res.status(500).json({ message: "Could not load menu." });
+        console.error("Menu loading error:", error);
+        res.status(500).json({
+            message: "Could not load menu."
+        });
     }
 });
 
-// Admin Login
+// Admin login
 app.post("/api/admin/login", (req, res) => {
     const { username, password } = req.body;
 
@@ -103,7 +101,7 @@ app.post("/api/admin/login", (req, res) => {
         !process.env.ADMIN_PASSWORD
     ) {
         return res.status(500).json({
-            message: "Admin login is not configured. Check .env file."
+            message: "Admin login is not configured."
         });
     }
 
@@ -125,31 +123,42 @@ app.post("/api/admin/login", (req, res) => {
     });
 });
 
-// Admin: Get all food items
+// Admin: Get food items
 app.get("/api/admin/menu", checkAdmin, (req, res) => {
     try {
         const db = readDB();
         res.json(db.menu);
     } catch (error) {
-        res.status(500).json({ message: "Could not load food items." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not load food items."
+        });
     }
 });
 
-// Admin: Add new food item
+// Admin: Add food item
 app.post("/api/admin/menu", checkAdmin, (req, res) => {
     try {
         const db = readDB();
 
         const {
-            name, category, foodType, description,
-            price, prepTime, image
+            name,
+            category,
+            foodType,
+            description,
+            price,
+            prepTime,
+            image
         } = req.body;
 
         if (
-            !name || !category ||
+            !name ||
+            !category ||
             !["Veg", "Non-Veg"].includes(foodType) ||
-            !Number.isFinite(Number(price)) || Number(price) <= 0 ||
-            !Number.isFinite(Number(prepTime)) || Number(prepTime) <= 0
+            !Number.isFinite(Number(price)) ||
+            Number(price) <= 0 ||
+            !Number.isFinite(Number(prepTime)) ||
+            Number(prepTime) <= 0
         ) {
             return res.status(400).json({
                 message: "Please enter valid food details."
@@ -177,9 +186,11 @@ app.post("/api/admin/menu", checkAdmin, (req, res) => {
             message: "Food item added successfully.",
             food: newFood
         });
-
     } catch (error) {
-        res.status(500).json({ message: "Could not add food item." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not add food item."
+        });
     }
 });
 
@@ -199,8 +210,14 @@ app.put("/api/admin/menu/:id", checkAdmin, (req, res) => {
         }
 
         const {
-            name, category, foodType, description,
-            price, prepTime, image, available
+            name,
+            category,
+            foodType,
+            description,
+            price,
+            prepTime,
+            image,
+            available
         } = req.body;
 
         if (name !== undefined) food.name = name;
@@ -215,10 +232,15 @@ app.put("/api/admin/menu/:id", checkAdmin, (req, res) => {
             food.foodType = foodType;
         }
 
-        if (description !== undefined) food.description = description;
+        if (description !== undefined) {
+            food.description = description;
+        }
 
         if (price !== undefined) {
-            if (!Number.isFinite(Number(price)) || Number(price) <= 0) {
+            if (
+                !Number.isFinite(Number(price)) ||
+                Number(price) <= 0
+            ) {
                 return res.status(400).json({
                     message: "Invalid food price."
                 });
@@ -227,7 +249,10 @@ app.put("/api/admin/menu/:id", checkAdmin, (req, res) => {
         }
 
         if (prepTime !== undefined) {
-            if (!Number.isFinite(Number(prepTime)) || Number(prepTime) <= 0) {
+            if (
+                !Number.isFinite(Number(prepTime)) ||
+                Number(prepTime) <= 0
+            ) {
                 return res.status(400).json({
                     message: "Invalid preparation time."
                 });
@@ -236,7 +261,10 @@ app.put("/api/admin/menu/:id", checkAdmin, (req, res) => {
         }
 
         if (image !== undefined) food.image = image;
-        if (typeof available === "boolean") food.available = available;
+
+        if (typeof available === "boolean") {
+            food.available = available;
+        }
 
         saveDB(db);
 
@@ -244,9 +272,11 @@ app.put("/api/admin/menu/:id", checkAdmin, (req, res) => {
             message: "Food item updated successfully.",
             food
         });
-
     } catch (error) {
-        res.status(500).json({ message: "Could not update food item." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not update food item."
+        });
     }
 });
 
@@ -254,7 +284,6 @@ app.put("/api/admin/menu/:id", checkAdmin, (req, res) => {
 app.delete("/api/admin/menu/:id", checkAdmin, (req, res) => {
     try {
         const db = readDB();
-
         const oldLength = db.menu.length;
 
         db.menu = db.menu.filter(
@@ -269,10 +298,14 @@ app.delete("/api/admin/menu/:id", checkAdmin, (req, res) => {
 
         saveDB(db);
 
-        res.json({ message: "Food item deleted successfully." });
-
+        res.json({
+            message: "Food item deleted successfully."
+        });
     } catch (error) {
-        res.status(500).json({ message: "Could not delete food item." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not delete food item."
+        });
     }
 });
 
@@ -281,15 +314,36 @@ app.post("/api/orders", (req, res) => {
     try {
         const db = readDB();
 
-        const { name, phone, table, paymentMethod, items } = req.body;
+        const {
+            name,
+            phone,
+            table,
+            paymentMethod,
+            items
+        } = req.body;
 
         if (
-            !name || !phone || !table ||
+            !name ||
+            !phone ||
+            !table ||
             !["UPI", "Cash"].includes(paymentMethod) ||
-            !Array.isArray(items) || items.length === 0
+            !Array.isArray(items) ||
+            items.length === 0
         ) {
             return res.status(400).json({
                 message: "Please provide all order details."
+            });
+        }
+
+        const tableNumber = Number(table);
+
+        if (
+            !Number.isInteger(tableNumber) ||
+            tableNumber < 1 ||
+            tableNumber > 50
+        ) {
+            return res.status(400).json({
+                message: "Please select a valid table from 1 to 50."
             });
         }
 
@@ -311,8 +365,11 @@ app.post("/api/orders", (req, res) => {
             const quantity = Number(requestedItem.quantity);
 
             if (
-                !food || food.available === false ||
-                !Number.isInteger(quantity) || quantity < 1 || quantity > 50
+                !food ||
+                food.available === false ||
+                !Number.isInteger(quantity) ||
+                quantity < 1 ||
+                quantity > 50
             ) {
                 return res.status(400).json({
                     message: "An item is unavailable or has invalid quantity."
@@ -327,6 +384,7 @@ app.post("/api/orders", (req, res) => {
             });
 
             total += Number(food.price) * quantity;
+
             maxPrepTime = Math.max(
                 maxPrepTime,
                 Number(food.prepTime) || 0
@@ -340,7 +398,7 @@ app.post("/api/orders", (req, res) => {
             orderId,
             name,
             phone,
-            table: String(table),
+            table: String(tableNumber),
             items: orderItems,
             total,
             prepTime: maxPrepTime,
@@ -363,9 +421,11 @@ app.post("/api/orders", (req, res) => {
             status: order.status,
             paymentStatus: order.paymentStatus
         });
-
     } catch (error) {
-        res.status(500).json({ message: "Could not place order." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not place order."
+        });
     }
 });
 
@@ -375,7 +435,8 @@ app.get("/api/orders/:orderId", (req, res) => {
         const db = readDB();
 
         const order = db.orders.find(
-            item => String(item.id || item.orderId) ===
+            item =>
+                String(item.id || item.orderId) ===
                 String(req.params.orderId)
         );
 
@@ -391,19 +452,24 @@ app.get("/api/orders/:orderId", (req, res) => {
             paymentStatus: order.paymentStatus,
             prepTime: order.prepTime
         });
-
     } catch (error) {
-        res.status(500).json({ message: "Could not track order." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not track order."
+        });
     }
 });
 
-// Admin: View customer orders
+// Admin: View orders
 app.get("/api/admin/orders", checkAdmin, (req, res) => {
     try {
         const db = readDB();
         res.json(db.orders);
     } catch (error) {
-        res.status(500).json({ message: "Could not load orders." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not load orders."
+        });
     }
 });
 
@@ -413,7 +479,8 @@ app.patch("/api/admin/orders/:id", checkAdmin, (req, res) => {
         const db = readDB();
 
         const order = db.orders.find(
-            item => String(item.id || item.orderId) ===
+            item =>
+                String(item.id || item.orderId) ===
                 String(req.params.id)
         );
 
@@ -443,14 +510,16 @@ app.patch("/api/admin/orders/:id", checkAdmin, (req, res) => {
             message: "Order status updated.",
             order
         });
-
     } catch (error) {
-        res.status(500).json({ message: "Could not update order." });
+        console.error(error);
+        res.status(500).json({
+            message: "Could not update order."
+        });
     }
 });
 
 // Start server
 app.listen(PORT, () => {
     console.log("Food Court server is running!");
-    console.log("Open http://localhost:" + PORT);
+    console.log("Server port: " + PORT);
 });
