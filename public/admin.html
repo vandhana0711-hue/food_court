@@ -93,6 +93,23 @@
         </section>
 
         <section class="admin-card">
+    <h2>Create Kitchen Team Account</h2>
+
+    <form id="kitchenUserForm">
+        <input type="text" id="newKitchenUsername"
+               placeholder="Kitchen username" required minlength="3">
+
+        <input type="password" id="newKitchenPassword"
+               placeholder="Kitchen password (minimum 8 characters)"
+               required minlength="8">
+
+        <button type="submit">Create Kitchen Account</button>
+    </form>
+
+    <p id="kitchenUserMessage"></p>
+    <a href="/kitchen.html">Open Kitchen Team Login</a>
+</section>
+        <section class="admin-card">
             <h2>Customer Orders</h2>
             <div id="adminOrderList">Loading orders...</div>
         </section>
