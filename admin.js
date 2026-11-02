@@ -404,13 +404,14 @@ if (kitchenUserForm) {
         const message = document.getElementById("kitchenUserMessage");
 
         try {
-            const result = await adminRequest("/kitchen-users", {
+            const result = await adminRequest("/api/admin/kitchen-users", {
                 method: "POST",
                 body: JSON.stringify({ username, password })
             });
 
             message.textContent = result.message;
             kitchenUserForm.reset();
+
 
         } catch (error) {
             message.textContent = error.message;
