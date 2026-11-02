@@ -162,7 +162,12 @@ app.post("/api/admin/kitchen-users", checkAdmin, (req, res) => {
         }
 
         const db = readDB();
-        const cleanUsername = username.trim();
+
+if (!Array.isArray(db.kitchenUsers)) {
+    db.kitchenUsers = [];
+}
+
+const cleanUsername = username.trim();
 
         const exists = db.kitchenUsers.some(
             user => user.username.toLowerCase() === cleanUsername.toLowerCase()
