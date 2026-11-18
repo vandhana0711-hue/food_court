@@ -17,9 +17,12 @@ for (let i = 1; i <= 50; i++) {
     tableSelect.appendChild(option);
 }
 
-// Select Table 1 by default if no table is in the URL
-if (!tableNumber) {
-    tableNumber = "1";
+// Select table only if QR URL contains a valid table number
+if (tableNumber && /^(?:[1-9]|[1-4][0-9]|50)$/.test(tableNumber)) {
+    tableSelect.value = tableNumber;
+} else {
+    tableNumber = "";
+    tableSelect.value = "";
 }
 
 if (/^(?:[1-9]|[1-4][0-9]|50)$/.test(tableNumber)) {
