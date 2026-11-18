@@ -32,12 +32,6 @@ tableSelect.addEventListener("change", function () {
     tableInfo.dataset.selectedTable = tableNumber;
 });
 
-// Update selected table
-tableSelect.addEventListener("change", function () {
-    tableNumber = this.value;
-    tableInfo.dataset.selectedTable = tableNumber;
-});
-
 const foodContainer = document.getElementById("foodContainer");
 const categoriesContainer = document.getElementById("categories");
 const searchInput = document.getElementById("searchInput");
