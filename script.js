@@ -41,11 +41,12 @@ const cartButton = document.getElementById("cartButton");
 const cartCount = document.getElementById("cartCount");
 const tableInfo = document.getElementById("tableInfo");
 
-// Show table number
+// Show selected table
 if (tableNumber) {
-    tableInfo.textContent = "Table: " + tableNumber;
+    tableSelect.value = tableNumber;
+    tableInfo.dataset.selectedTable = tableNumber;
 } else {
-    tableInfo.textContent = "Please scan your table QR code";
+    tableSelect.value = "";
 }
 
 // Load menu from server
@@ -400,6 +401,15 @@ async function placeOrder() {
                 <h2>Order Placed Successfully!</h2>
                 <p>Order Number: ${result.orderId || result.id || "Check server response"}</p>
                 <p>Payment: ${paymentMethod}</p>
+
+${paymentMethod === "UPI" && result.paymentLink ? `
+    <p>Complete your UPI payment:</p>
+    <a href="${result.paymentLink}">
+        <button type="button">Pay Now with UPI</button>
+    </a>
+` : ""}
+
+<p>UPI orders will remain awaiting verification until payment is confirmed.</p>
                 <p>UPI orders will remain awaiting verification until payment is confirmed.</p>
                 <p>Thank you for ordering from Food Court!</p>
                 <button onclick="document.getElementById('cartWindow').remove()">
