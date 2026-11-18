@@ -367,7 +367,7 @@ async function placeOrder() {
     const orderData = {
         name,
         phone,
-        table: tableNumber,
+        table: Number(tableNumber),
         paymentMethod,
         items: cart.map(item => ({
             id: item.id,
