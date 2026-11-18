@@ -8,8 +8,9 @@ let selectedType = "All";
 let tableNumber = new URLSearchParams(window.location.search).get("table");
 
 const tableSelect = document.getElementById("tableSelect");
+const tableInfo = document.getElementById("tableInfo");
 
-// Create 50 table options
+// Create 50 tables
 for (let i = 1; i <= 50; i++) {
     const option = document.createElement("option");
     option.value = i;
@@ -17,7 +18,7 @@ for (let i = 1; i <= 50; i++) {
     tableSelect.appendChild(option);
 }
 
-// Select table only if QR URL contains a valid table number
+// Select table from QR URL
 if (tableNumber && /^(?:[1-9]|[1-4][0-9]|50)$/.test(tableNumber)) {
     tableSelect.value = tableNumber;
 } else {
@@ -25,11 +26,11 @@ if (tableNumber && /^(?:[1-9]|[1-4][0-9]|50)$/.test(tableNumber)) {
     tableSelect.value = "";
 }
 
-if (/^(?:[1-9]|[1-4][0-9]|50)$/.test(tableNumber)) {
-    tableSelect.value = tableNumber;
-} else {
-    tableNumber = "";
-}
+// When customer selects a table
+tableSelect.addEventListener("change", function () {
+    tableNumber = this.value;
+    tableInfo.dataset.selectedTable = tableNumber;
+});
 
 // Update selected table
 tableSelect.addEventListener("change", function () {
@@ -42,7 +43,6 @@ const categoriesContainer = document.getElementById("categories");
 const searchInput = document.getElementById("searchInput");
 const cartButton = document.getElementById("cartButton");
 const cartCount = document.getElementById("cartCount");
-const tableInfo = document.getElementById("tableInfo");
 
 // Show selected table
 if (tableNumber) {
