@@ -8,6 +8,7 @@ let selectedType = "All";
 let tableNumber = new URLSearchParams(window.location.search).get("table");
 
 const tableSelect = document.getElementById("tableSelect");
+console.log("Table dropdown:", tableSelect);
 const tableInfo = document.getElementById("tableInfo");
 
 // Create 50 tables
